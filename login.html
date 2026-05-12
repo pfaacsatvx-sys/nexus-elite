@@ -149,7 +149,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 // Google Login
-window.googleLogin = async () => {
+document.getElementById('googleBtn').addEventListener('click', async () => {
+
     setLoading(true);
     const provider = new GoogleAuthProvider();
 
@@ -190,7 +191,10 @@ window.googleLogin = async () => {
         showError(msg);
         setLoading(false);
     }
-};
+    
+});
+});
+
 </script>
 </body>
 </html>
