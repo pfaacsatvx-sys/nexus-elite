@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS ELITE | VIP Investment Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--gold:#d4a017;--gold-light:#f3df85;--gold-dark:#b8860b;--dark:#0a0a0b;--dark-card:#121214;--dark-border:#2a2a2e;--text:#ffffff;--text-muted:#9ca3af;--success:#10b981;--danger:#ef4444;--warning:#f59e0b}
+body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;overflow-x:hidden}
+.gold-text{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 50%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.btn-gold{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 50%,var(--gold) 100%);color:#000;font-weight:700;padding:14px 32px;border-radius:10px;border:none;cursor:pointer;transition:all .3s;font-size:15px;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 10px 40px rgba(212,160,23,.4)}
+.btn-outline{border:1px solid rgba(212,160,23,.4);color:var(--gold);background:transparent;padding:14px 32px;border-radius:10px;cursor:pointer;transition:all .3s;font-size:15px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-outline:hover{background:rgba(212,160,23,.1);border-color:var(--gold)}
+.card{background:var(--dark-card);border:1px solid var(--dark-border);border-radius:16px;transition:all .3s}
+.card:hover{border-color:rgba(212,160,23,.3);transform:translateY(-4px)}
+.nav-link{color:var(--text-muted);text-decoration:none;transition:.3s;font-weight:500}
+.nav-link:hover{color:var(--gold)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .6s ease-out}
+.grid-bg{background-image:linear-gradient(rgba(212,160,23,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(212,160,23,.03) 1px,transparent 1px);background-size:50px 50px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-gold{background:rgba(212,160,23,.15);color:var(--gold);border:1px solid rgba(212,160,23,.3)}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:var(--dark)}
+::-webkit-scrollbar-thumb{background:var(--dark-border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+.loading-spinner{width:20px;height:20px;border:2px solid rgba(212,160,23,.3);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+<script type="module">
+import { auth, checkAuth, signOut, db, collection, getDocs, query, orderBy, limit } from './firebase-config.js';
+
+checkAuth(async (user) => {
+    const authLinks = document.getElementById('authLinks');
+    if (user) {
+        // Check if admin
+        const { getDoc, doc } = await import('./firebase-config.js');
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        const isAdmin = userData.role === 'admin';
+        authLinks.innerHTML = `
+            <a href="${isAdmin ? 'admin.html' : 'dashboard.html'}" class="nav-link" style="color:var(--gold)">👤 ${userData.name || user.email}</a>
+            <a href="#" class="btn-outline" style="padding:10px 24px;font-size:14px" onclick="window.firebaseLogout(event)">Logout</a>
+        `;
+    } else {
+        authLinks.innerHTML = `
+            <a href="login.html" class="nav-link">Sign In</a>
+            <a href="register.html" class="btn-gold" style="padding:10px 24px;font-size:14px">Get Started</a>
+        `;
+    }
+});
+
+window.firebaseLogout = async (e) => {
+    e.preventDefault();
+    try {
+        await signOut(auth);
+        window.location.href = 'index.html';
+    } catch (err) {
+        console.error('Logout error:', err);
+    }
+};
+
+// Load real stats from Firestore
+async function loadStats() {
+    try {
+        const { getCount } = await import('https://esm.sh/firebase@10.12.0/firestore');
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const depositsSnap = await getDocs(query(collection(db, 'transactions'), where('type', '==', 'deposit'), where('status', '==', 'approved')));
+
+        let totalInvested = 0;
+        depositsSnap.forEach(doc => {
+            totalInvested += doc.data().amount || 0;
+        });
+
+        document.getElementById('statUsers').textContent = usersSnap.size.toLocaleString() + '+';
+        document.getElementById('statInvested').textContent = '$' + totalInvested.toLocaleString() + '+';
+    } catch (e) {
+        console.log('Stats load error:', e);
+    }
+}
+loadStats();
+</script>
+</head>
+<body class="grid-bg">
+
+<!-- Navigation -->
+<nav style="position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,11,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--dark-border)">
+  <div style="max-width:1400px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between">
+    <a href="index.html" style="display:flex;align-items:center;gap:12px;text-decoration:none">
+      <div style="width:42px;height:42px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px">👑</div>
+      <div>
+        <div style="font-size:20px;font-weight:800;letter-spacing:2px" class="gold-text">NEXUS</div>
+        <div style="font-size:9px;letter-spacing:4px;color:var(--gold-dark)">ELITE</div>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:32px" id="authLinks">
+      <span class="loading-spinner"></span>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section style="padding:160px 24px 100px;position:relative;overflow:hidden">
+  <div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(212,160,23,.08),transparent 70%);border-radius:50%"></div>
+  <div style="position:absolute;bottom:-100px;left:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(212,160,23,.05),transparent 70%);border-radius:50%"></div>
+
+  <div style="max-width:900px;margin:0 auto;text-align:center;position:relative;z-index:1" class="fade-in">
+    <div class="badge badge-gold" style="margin-bottom:24px;font-size:13px;padding:8px 20px">
+      ⭐ Premium VIP Investment Platform
+    </div>
+    <h1 style="font-size:64px;font-weight:900;line-height:1.1;margin-bottom:24px">
+      Invest in Your<br><span class="gold-text">Future</span>
+    </h1>
+    <p style="font-size:18px;color:var(--text-muted);max-width:600px;margin:0 auto 40px;line-height:1.7">
+      Join the elite circle of investors earning <strong style="color:var(--gold)">25-35% monthly returns</strong>. 
+      Secure, transparent, and built for those who demand excellence.
+    </p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a href="register.html" class="btn-gold" style="font-size:17px;padding:16px 40px">Start Investing Now →</a>
+      <a href="login.html" class="btn-outline" style="font-size:17px;padding:16px 40px">Member Login</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section style="border-top:1px solid var(--dark-border);border-bottom:1px solid var(--dark-border);background:rgba(18,18,20,.5);padding:48px 24px">
+  <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:32px;text-align:center">
+    <div><div style="font-size:36px;font-weight:800" class="gold-text" id="statInvested">$0+</div><div style="color:var(--text-muted);font-size:14px;margin-top:8px">Total Invested</div></div>
+    <div><div style="font-size:36px;font-weight:800" class="gold-text" id="statUsers">0+</div><div style="color:var(--text-muted);font-size:14px;margin-top:8px">Active Investors</div></div>
+    <div><div style="font-size:36px;font-weight:800" class="gold-text">99.9%</div><div style="color:var(--text-muted);font-size:14px;margin-top:8px">Uptime</div></div>
+    <div><div style="font-size:36px;font-weight:800" class="gold-text">4.9/5</div><div style="color:var(--text-muted);font-size:14px;margin-top:8px">User Rating</div></div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" style="padding:100px 24px">
+  <div style="max-width:1200px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:64px">
+      <h2 style="font-size:40px;font-weight:800;margin-bottom:16px">Why Choose <span class="gold-text">NEXUS ELITE</span></h2>
+      <p style="color:var(--text-muted);max-width:500px;margin:0 auto">We combine cutting-edge technology with proven investment strategies</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div class="card" style="padding:32px">
+        <div style="width:56px;height:56px;background:rgba(212,160,23,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">📈</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">High Returns</h3>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.6">Earn 25-35% monthly returns on your investments with our proven strategies.</p>
+      </div>
+      <div class="card" style="padding:32px">
+        <div style="width:56px;height:56px;background:rgba(212,160,23,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">🛡️</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">Secure Platform</h3>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.6">Bank-grade security with encrypted transactions and multi-layer protection.</p>
+      </div>
+      <div class="card" style="padding:32px">
+        <div style="width:56px;height:56px;background:rgba(212,160,23,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">⚡</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">Instant Processing</h3>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.6">Fast deposit and withdrawal processing with automated profit distribution.</p>
+      </div>
+      <div class="card" style="padding:32px">
+        <div style="width:56px;height:56px;background:rgba(212,160,23,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">🌍</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">Global Access</h3>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.6">Invest from anywhere in the world with our crypto-based payment system.</p>
+      </div>
+      <div class="card" style="padding:32px">
+        <div style="width:56px;height:56px;background:rgba(212,160,23,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">🔒</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">Asset Protection</h3>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.6">Your funds are protected with institutional-grade custody solutions.</p>
+      </div>
+      <div class="card" style="padding:32px">
+        <div style="width:56px;height:56px;background:rgba(212,160,23,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">🕐</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">24/7 Support</h3>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.6">Round-the-clock customer support from our dedicated team of experts.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Packages -->
+<section id="packages" style="padding:100px 24px;background:rgba(18,18,20,.3)">
+  <div style="max-width:1400px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:64px">
+      <h2 style="font-size:40px;font-weight:800;margin-bottom:16px">Investment <span class="gold-text">Packages</span></h2>
+      <p style="color:var(--text-muted);max-width:500px;margin:0 auto">Choose from our carefully curated investment tiers</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:20px" id="packages-grid">
+      <!-- Packages injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="padding:100px 24px">
+  <div style="max-width:800px;margin:0 auto">
+    <div style="background:linear-gradient(135deg,rgba(212,160,23,.1),rgba(10,10,11,.9));border:1px solid rgba(212,160,23,.2);border-radius:24px;padding:64px;text-align:center;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-50px;right:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(212,160,23,.1),transparent 70%)"></div>
+      <h2 style="font-size:36px;font-weight:800;margin-bottom:16px;position:relative;z-index:1">Ready to Start Your Journey?</h2>
+      <p style="color:var(--text-muted);margin-bottom:32px;position:relative;z-index:1">Join thousands of elite investors who trust NEXUS ELITE for their financial growth.</p>
+      <a href="register.html" class="btn-gold" style="font-size:18px;padding:18px 48px;position:relative;z-index:1">Create Your Account →</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer style="border-top:1px solid var(--dark-border);padding:48px 24px">
+  <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:24px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">👑</div>
+      <span style="font-size:18px;font-weight:800" class="gold-text">NEXUS ELITE</span>
+    </div>
+    <div style="display:flex;gap:24px">
+      <a href="terms.html" style="color:#555;font-size:13px;text-decoration:none">Terms</a>
+      <a href="privacy.html" style="color:#555;font-size:13px;text-decoration:none">Privacy</a>
+      <a href="risk-disclosure.html" style="color:#555;font-size:13px;text-decoration:none">Risk Disclosure</a>
+    </div>
+    <p style="color:#555;font-size:13px">© 2026 NEXUS ELITE. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module">
+import { db, collection, getDocs } from './firebase-config.js';
+
+const packages = [
+  {id:'pkg-1',name:'Starter',price:11,return:25,duration:30,color:'linear-gradient(135deg,#6b7280,#374151)',icon:'⚡',features:['Daily profit','25% monthly','30-day duration','Email support']},
+  {id:'pkg-2',name:'Bronze',price:50,return:27,duration:60,color:'linear-gradient(135deg,#b45309,#78350f)',icon:'🏅',features:['Daily profit','27% monthly','60-day duration','Priority support','3% referral']},
+  {id:'pkg-3',name:'Silver',price:100,return:30,duration:90,color:'linear-gradient(135deg,#94a3b8,#475569)',icon:'👑',popular:true,features:['Daily profit','30% monthly','90-day duration','24/7 support','5% referral','Weekly reports']},
+  {id:'pkg-4',name:'Gold',price:150,return:33,duration:120,color:'linear-gradient(135deg,#eab308,#a16207)',icon:'💎',features:['Daily profit','33% monthly','120-day duration','Account manager','7% referral','Daily reports']},
+  {id:'pkg-5',name:'Platinum',price:200,return:35,duration:180,color:'linear-gradient(135deg,#22d3ee,#1d4ed8)',icon:'💠',features:['Daily profit','35% monthly','180-day duration','Wealth advisor','10% referral','Instant withdrawals']}
+];
+
+const grid = document.getElementById('packages-grid');
+packages.forEach(pkg => {
+  grid.innerHTML += `
+    <div class="card" style="padding:28px;position:relative;${pkg.popular?'border-color:rgba(212,160,23,.5);transform:scale(1.05)':''}">
+      ${pkg.popular?'<div style="position:absolute;top:0;right:0;background:var(--gold);color:#000;font-size:10px;font-weight:700;padding:4px 16px;border-radius:0 16px 0 16px">POPULAR</div>':''}
+      <div style="width:56px;height:56px;background:${pkg.color};border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px">${pkg.icon}</div>
+      <h3 style="font-size:20px;font-weight:800;margin-bottom:4px">${pkg.name}</h3>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px">${pkg.duration}-Day Plan</p>
+      <div style="font-size:36px;font-weight:800" class="gold-text">$${pkg.price}</div>
+      <div style="background:rgba(212,160,23,.1);border:1px solid rgba(212,160,23,.2);border-radius:10px;padding:16px;text-align:center;margin:16px 0">
+        <div style="font-size:28px;font-weight:800;color:var(--gold)">${pkg.return}%</div>
+        <div style="color:var(--text-muted);font-size:12px">Monthly Return</div>
+      </div>
+      <div style="margin-bottom:20px">
+        ${pkg.features.map(f=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;color:var(--text-muted)"><span style="color:var(--gold)">✓</span>${f}</div>`).join('')}
+      </div>
+      <a href="deposit.html?package=${pkg.id}" class="btn-gold" style="width:100%;justify-content:center;padding:12px">Select Package</a>
+    </div>
+  `;
+});
+</script>
+</body>
+</html>
