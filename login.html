@@ -75,7 +75,8 @@ input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,160,23,.1)}
 </div>
 
 <script type="module">
-import { auth, db, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getDoc, doc } from './firebase-config.js';
+import { auth, db, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getDoc, doc, setDoc, serverTimestamp } from './firebase-config.js';
+
 
 function showError(msg) {
     const el = document.getElementById('error');
@@ -161,7 +162,7 @@ window.googleLogin = async () => {
 
         if (!userDoc.exists()) {
             // Create new user document
-            const { setDoc, serverTimestamp } = await import('./firebase-config.js');
+            
             await setDoc(doc(db, 'users', user.uid), {
                 name: user.displayName || 'User',
                 email: user.email,
