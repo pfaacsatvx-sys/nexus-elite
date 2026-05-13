@@ -75,8 +75,7 @@ input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,160,23,.1)}
 </div>
 
 <script type="module">
-import { auth, db, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getDoc, doc, setDoc, serverTimestamp } from './firebase-config.js';
-
+import { auth, db, signInWithEmailAndPassword, signInWithRedirect, GoogleAuthProvider, getDoc, doc, setDoc, serverTimestamp, getRedirectResult } from './firebase-config.js';
 
 function showError(msg) {
     const el = document.getElementById('error');
@@ -109,6 +108,38 @@ function setLoading(isLoading) {
         googleText.textContent = 'Continue with Google';
     }
 }
+
+// Handle Google Redirect Result (when user comes back from Google)
+getRedirectResult(auth).then(async (result) => {
+    if (result && result.user) {
+        const user = result.user;
+        
+        // Check if user exists in Firestore
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        
+        if (!userDoc.exists()) {
+            // Create new user document
+            await setDoc(doc(db, 'users', user.uid), {
+                name: user.displayName || 'User',
+                email: user.email,
+                role: 'user',
+                balance: 0,
+                invested: 0,
+                profit: 0,
+                withdrawn: 0,
+                referralCode: 'NX' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+                status: 'active',
+                createdAt: serverTimestamp()
+            });
+        }
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard.html';
+    }
+}).catch((error) => {
+    console.error('Redirect error:', error);
+    showError('Google login failed. Please try again.');
+});
 
 // Email/Password Login
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -150,50 +181,19 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
 // Google Login
 document.getElementById('googleBtn').addEventListener('click', async () => {
-
     setLoading(true);
     const provider = new GoogleAuthProvider();
 
     try {
         await signInWithRedirect(auth, provider);
-
-        // Check if user exists in Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-
-        if (!userDoc.exists()) {
-            // Create new user document
-            
-            await setDoc(doc(db, 'users', user.uid), {
-                name: user.displayName || 'User',
-                email: user.email,
-                role: 'user',
-                balance: 0,
-                invested: 0,
-                profit: 0,
-                withdrawn: 0,
-                referralCode: 'NX' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-                status: 'active',
-                createdAt: serverTimestamp()
-            });
-        }
-
-        showSuccess('Login successful! Redirecting...');
-        setTimeout(() => {
-            window.location.href = 'dashboard.html';
-        }, 1000);
-
+        // Browser redirects to Google - code below won't execute
     } catch (error) {
         console.error('Google login error:', error);
         let msg = 'Google login failed. Please try again.';
-        if (error.code === 'auth/popup-closed-by-user') msg = 'Login cancelled.';
-        if (error.code === 'auth/popup-blocked') msg = 'Popup blocked. Please allow popups for this site.';
         showError(msg);
         setLoading(false);
     }
-    
 });
-});
-
 </script>
 </body>
 </html>
