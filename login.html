@@ -155,8 +155,7 @@ document.getElementById('googleBtn').addEventListener('click', async () => {
     const provider = new GoogleAuthProvider();
 
     try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
+        await signInWithRedirect(auth, provider);
 
         // Check if user exists in Firestore
         const userDoc = await getDoc(doc(db, 'users', user.uid));
