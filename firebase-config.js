@@ -11,6 +11,8 @@ import {
     onAuthStateChanged,
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithRedirect,        // ← أضفنا هذي
+    getRedirectResult,         // ← وأضفنا هذي
     updateProfile
 } from "https://esm.sh/firebase@10.12.0/auth";
 import { 
@@ -63,6 +65,8 @@ export {
     onAuthStateChanged,
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithRedirect,        // ← أضفنا هنا
+    getRedirectResult,         // ← وأضفنا هنا
     updateProfile,
     collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
     query, where, orderBy, addDoc, serverTimestamp, onSnapshot, increment, limit,
